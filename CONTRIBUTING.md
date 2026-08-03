@@ -12,10 +12,9 @@ No TV required for most work: driver logic is behind the `TVDriver` interface ([
 
 ## Where help is most wanted
 
-1. **Remote-key pairing** — Samsung remote WebSocket API and LG SSAP client, including token persistence (`docs` topic `remote-key-pairing` has the protocol notes).
-2. **webOS dev-mode auto-renew** — session token refresh against the Dev Mode app.
-3. **New drivers** — Vizio SmartCast, Roku, Android TV / Fire TV. Implement `TVDriver`, register it in `server.ts`, done.
-4. **Real-device testing** — we can't own every panel year. Reports from real hardware (model + firmware + what broke) are gold.
+1. **webOS dev-mode auto-renew** — session token refresh against the Dev Mode app.
+2. **New drivers** — Vizio SmartCast, Roku, Android TV / Fire TV. Implement `TVDriver`, register it in `server.ts`, done.
+3. **Real-device testing** — we can't own every panel year. Reports from real hardware (model + firmware + what broke) are gold. The remote-key pairing flows (Samsung WS :8002, LG SSAP :3000/:3001) especially need firmware-diversity reports.
 
 ## Ground rules
 

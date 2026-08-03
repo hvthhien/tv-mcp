@@ -83,23 +83,31 @@ Common failures:
     title: "Remote-control key injection: pairing flows for both vendors",
     body: `# Remote key injection
 
-Both vendors need a one-time on-screen pairing; tv-mcp will persist tokens per device.
+Both vendors need a ONE-TIME on-screen pairing. The first remote_key call to a
+device makes the TV show an approval prompt — accept it with the physical
+remote within 60s. The granted secret (Samsung token / LG client-key) is
+persisted to ~/.tv-mcp/state.json (mode 0600) and the prompt never reappears
+unless the TV is factory-reset (then: delete the device's entry and re-pair).
 
 ## Samsung (Tizen)
-WebSocket: wss://<tv>:8002/api/v2/channels/samsung.remote.control?name=<b64 name>&token=<token>
-First connect without token → TV shows an allow/deny prompt → response contains
-a token to persist. Keys sent as {"method":"ms.remote.control","params":
-{"Cmd":"Click","DataOfCmd":"KEY_ENTER",...}}.
+WebSocket: wss://<tv>:8002/api/v2/channels/samsung.remote.control
+- Port 8002 only listens while the TV is ON (not standby)
+- Self-signed TLS; trust comes from the pairing prompt, not the cert chain
+- Models before 2016 use a different protocol and are unsupported
+- If no prompt appears: TV menu → General → External Device Manager →
+  Device Connection Manager → check this machine is not blocked
 
 ## LG (webOS)
-SSAP WebSocket: ws://<tv>:3000 (wss://<tv>:3001 on 2022+ firmware).
-Register with a manifest → TV prompts → response contains client-key to persist.
-Then request ssap://com.webos.service.networkinput/getPointerInputSocket and send
-button events (type:button name:ENTER etc.) on the returned socket.
+SSAP WebSocket: wss://<tv>:3001 with ws://<tv>:3000 fallback (older firmware).
+Key presses go over a secondary pointer-input socket
+(ssap://com.webos.service.networkinput/getPointerInputSocket).
+Works on consumer TVs with or without Dev Mode — pairing is independent of the
+Dev Mode app used for installs.
 
-## Workaround available today
+## Fallback
 eval_js can dispatch synthetic KeyboardEvents, which most spatial-navigation
-frameworks handle identically to real remote input.
+frameworks handle identically to real remote input — useful when the TV is in
+a rack with no one nearby to approve a first-time pairing prompt.
 `,
   },
 };

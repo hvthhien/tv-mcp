@@ -67,14 +67,15 @@ Early. Honest capability matrix:
 | install / launch / stop | ✅ | ✅ |
 | debug attach (CDP) | ✅ | ✅ |
 | screenshot / console / eval | ✅ | ✅ |
-| remote key injection | 🚧 pairing planned | 🚧 pairing planned |
+| remote key injection | ✅ (one-time on-screen pairing) | ✅ (one-time on-screen pairing) |
 | dev-mode auto-renew | n/a | 🚧 planned |
 | emulator / simulator targets | 🚧 | 🚧 |
 | commercial panels (Pro:Centric, SSSP) | 🚧 | 🚧 |
 
 ## Roadmap
 
-- v0.2 — remote-key pairing (Samsung remote WS API, LG SSAP), webOS dev-mode auto-renew
+- v0.2 — ✅ remote-key pairing (Samsung remote WS API, LG SSAP)
+- v0.2.x — webOS dev-mode auto-renew
 - v0.3 — Tizen emulator + webOS simulator targets, CI-friendly headless mode
 - v0.4 — streamable-HTTP transport + device locking: one shared TV lab, whole team's agents
 - v1.0 — commercial hospitality panels (LG Pro:Centric / webOS Signage, Samsung SSSP / HTV)

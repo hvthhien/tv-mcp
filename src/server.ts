@@ -6,6 +6,7 @@ import { CdpBridge } from "./cdp/bridge.js";
 import type { TVMcpConfig } from "./config.js";
 import { DOCS } from "./docs.js";
 import { DeviceRegistry } from "./registry.js";
+import { TokenStore } from "./state.js";
 import { TizenDriver } from "./drivers/tizen.js";
 import { WebOSDriver } from "./drivers/webos.js";
 import type { Artifact, Platform, RemoteKey } from "./types.js";
@@ -30,10 +31,11 @@ const REMOTE_KEYS = [
  * client refreshes. A fresh session costs the model 3 tool schemas, not 13.
  */
 export function buildServer(config: TVMcpConfig): McpServer {
-  const server = new McpServer({ name: "tv-mcp", version: "0.1.0" });
+  const server = new McpServer({ name: "tv-mcp", version: "0.2.0" });
 
+  const store = new TokenStore();
   const registry = new DeviceRegistry(
-    { tizen: new TizenDriver(), webos: new WebOSDriver() },
+    { tizen: new TizenDriver(store), webos: new WebOSDriver(store) },
     config.devices,
   );
   const cdp = new CdpBridge();
@@ -273,7 +275,8 @@ export function buildServer(config: TVMcpConfig): McpServer {
       "remote_key",
       {
         title: "Press remote key",
-        description: "Inject a remote-control key press (navigation testing).",
+        description:
+          "Inject a remote-control key press (navigation testing). First call per TV triggers a one-time on-screen pairing prompt — see docs topic remote-key-pairing.",
         inputSchema: {
           device: z.string(),
           key: z.enum(REMOTE_KEYS),
