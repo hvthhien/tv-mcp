@@ -36,9 +36,20 @@ A fresh session exposes only **3 tools** (`list_devices`, `connect_device`, `doc
 | 1 | device connected | `build_app`, `install_app`, `launch_app`, `stop_app`, `uninstall_app`, `device_logs`, `remote_key` |
 | 2 | debug launch | `screenshot`, `console_logs`, `eval_js` |
 
-## Quick start
+## Prerequisites
 
-Prerequisites: Node ≥ 20, plus the vendor CLI for your target — Tizen Studio CLI (`tizen`, `sdb`) and/or webOS TV CLI (`npm i -g @webos-tools/cli`).
+tv-mcp orchestrates the vendor toolchains — it does not replace them. You need:
+
+| | Samsung (Tizen) | LG (webOS) |
+|---|---|---|
+| **On this machine** | Node ≥ 20 · [Tizen Studio CLI](https://developer.tizen.org/development/tizen-studio/download) (`tizen`, `sdb` on PATH) | Node ≥ 20 · webOS TV CLI: `npm i -g @webos-tools/cli` (`ares-*` on PATH) |
+| **On the TV, once** | Developer mode: Apps → type `1 2 3 4 5` → ON → set **Host PC IP** to this machine's address **on the TV's subnet** → reboot the TV | Developer Mode app from LG Content Store (needs an LG developer account) → Dev Mode ON → note the on-screen passphrase |
+| **Signing** | Certificate profile in Tizen Studio's certificate manager. Real TVs reject the generic Tizen distributor cert — you need a **Samsung-issued** cert that includes the TV's DUID (`sdb shell 0 getduid`) | none (dev installs ride the Dev Mode session) |
+| **Network** | TV and this machine on the same subnet; port 26101 open only while dev mode is armed | same subnet; SSH on 9922 via the Dev Mode app; sessions expire after ~50h |
+
+Common trap (learned on real hardware): a multi-homed machine has several IPs — the Host PC IP on the TV must be the one on the **TV's** subnet, or the TV silently drops every connection. `docs` topic `device-setup` has the full checklist; the server's errors point there when connect/install fails.
+
+## Quick start
 
 ```bash
 npm install
@@ -76,6 +87,7 @@ Early. Honest capability matrix:
 
 - v0.2 — ✅ remote-key pairing (Samsung remote WS API, LG SSAP)
 - v0.2.x — webOS dev-mode auto-renew
+- v0.3 — Android TV driver ([#1](https://github.com/skdonthi/tv-mcp/issues/1)): adb platform plane + the same CDP debug plane (Android TV webapps are Chromium WebViews too)
 - v0.3 — Tizen emulator + webOS simulator targets, CI-friendly headless mode
 - v0.4 — streamable-HTTP transport + device locking: one shared TV lab, whole team's agents
 - v1.0 — commercial hospitality panels (LG Pro:Centric / webOS Signage, Samsung SSSP / HTV)

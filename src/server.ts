@@ -31,7 +31,7 @@ const REMOTE_KEYS = [
  * client refreshes. A fresh session costs the model 3 tool schemas, not 13.
  */
 export function buildServer(config: TVMcpConfig): McpServer {
-  const server = new McpServer({ name: "tv-mcp", version: "0.2.2" });
+  const server = new McpServer({ name: "tv-mcp", version: "0.2.3" });
 
   const store = new TokenStore();
   const registry = new DeviceRegistry(

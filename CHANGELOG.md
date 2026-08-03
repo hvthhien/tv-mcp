@@ -9,9 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Planned: Android TV driver — adb platform plane + shared CDP debug plane ([#1](https://github.com/skdonthi/tv-mcp/issues/1))
 - Planned: webOS Dev Mode session auto-renew
 - Planned: Tizen emulator / webOS simulator targets
 - Planned: streamable-HTTP transport with device locking for shared TV labs
+
+## [0.2.3] - 2026-08-03
+
+### Added
+
+- `device-setup` docs topic: first-time TV setup checklist for both platforms —
+  dev mode, host PC IP, network requirements, vendor CLI installation. Includes
+  the multi-homed-machine trap: the Host PC IP on a Samsung TV must be this
+  machine's address on the TV's subnet, or the TV silently drops everything.
+- README Prerequisites section covering machine-side toolchains, one-time TV
+  configuration, signing requirements, and network expectations per platform.
+
+### Changed
+
+- Tizen connect errors now point at the `device-setup` docs topic and call out
+  the subnet requirement for Host PC IP.
 
 ## [0.2.2] - 2026-08-03
 
@@ -86,7 +103,8 @@ Maintenance release validating the fully automated publish pipeline.
   dev mode, packaging, remote pairing).
 - Structured errors (`TVMcpError`) with mandatory agent-actionable remedies.
 
-[Unreleased]: https://github.com/skdonthi/tv-mcp/compare/v0.2.2...HEAD
+[Unreleased]: https://github.com/skdonthi/tv-mcp/compare/v0.2.3...HEAD
+[0.2.3]: https://github.com/skdonthi/tv-mcp/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/skdonthi/tv-mcp/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/skdonthi/tv-mcp/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/skdonthi/tv-mcp/compare/v0.1.0...v0.2.0

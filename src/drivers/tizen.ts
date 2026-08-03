@@ -54,7 +54,7 @@ export class TizenDriver implements TVDriver {
     if (stdout.includes("error") || stdout.includes("failed")) {
       throw new TVMcpError(
         `sdb connect ${target} failed: ${stdout}`,
-        "On the TV: enable Developer Mode (Apps → 12345 → Developer mode ON, set Host PC IP to this machine), then reboot the TV.",
+        "On the TV: enable Developer Mode (Apps → 12345 → Developer mode ON, set Host PC IP to this machine's address ON THE TV'S SUBNET), then reboot the TV. Full checklist: docs topic device-setup.",
       );
     }
     return { ...config, serial: target, reachable: true };

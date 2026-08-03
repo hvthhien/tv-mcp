@@ -6,6 +6,39 @@
  * the corresponding problem.
  */
 export const DOCS: Record<string, { title: string; body: string }> = {
+  "device-setup": {
+    title: "First-time TV setup: dev mode, host IP, network — start here when connect fails",
+    body: `# Device setup checklist
+
+## Both platforms
+- TV powered ON (not standby) and on the SAME SUBNET as this machine.
+- Multi-homed machine (Wi-Fi + Ethernet, VPN, VLANs)? Identify which local IP
+  sits on the TV's subnet — that is the address the TV must be told about.
+  Wrong-subnet host IP = the TV silently drops everything (no ping, all ports
+  closed) even though ARP resolves.
+
+## Samsung (Tizen)
+1. Apps panel -> type 1 2 3 4 5 on the remote -> Developer mode popup
+2. Developer mode: ON
+3. Host PC IP: this machine's IP on the TV's subnet
+4. REBOOT the TV — dev mode only arms after a restart
+5. Verify: sdb connect <tv-ip>:26101 then sdb devices
+6. Port 26101 only listens while dev mode is armed and only accepts the
+   whitelisted host.
+
+## LG (webOS)
+1. Install "Developer Mode" app from LG Content Store (LG developer account)
+2. Open it, turn Dev Mode ON, note the passphrase on screen
+3. devices.yaml: set passphraseEnv to an env var holding that passphrase
+4. connect_device runs ares-setup-device + the key exchange
+5. Sessions expire after ~50h — see tvmcp://docs/webos-dev-mode
+
+## Vendor CLIs on this machine
+- Tizen: Tizen Studio CLI; tizen + sdb on PATH
+- webOS: npm i -g @webos-tools/cli; ares-* on PATH
+tv-mcp shells out to these — install errors from missing CLIs name the fix.
+`,
+  },
   "tizen-signing": {
     title: "Tizen certificate profiles, DUIDs, and why installs get rejected",
     body: `# Tizen signing
