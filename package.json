@@ -1,6 +1,6 @@
 {
   "name": "tv-mcp",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "MCP server for Smart TV app development — build, deploy, and debug web apps on Samsung Tizen and LG webOS TVs from any MCP client",
   "keywords": [
     "mcp",
@@ -39,12 +39,14 @@
     "@modelcontextprotocol/sdk": "^1.13.0",
     "chrome-remote-interface": "^0.33.2",
     "execa": "^9.5.0",
+    "ws": "^8.21.1",
     "yaml": "^2.6.0",
     "zod": "^3.24.0"
   },
   "devDependencies": {
     "@types/chrome-remote-interface": "^0.31.14",
     "@types/node": "^22.0.0",
+    "@types/ws": "^8.18.1",
     "eslint": "^9.0.0",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0",
