@@ -11,10 +11,15 @@ import type {
   TVDriver,
 } from "../types.js";
 import { TVMcpError } from "../types.js";
+import { SamsungRemote } from "../remote/samsung.js";
+import type { TokenStore } from "../state.js";
 
 /** Samsung Tizen driver — wraps the `tizen` and `sdb` CLIs from Tizen Studio. */
 export class TizenDriver implements TVDriver {
   readonly platform = "tizen" as const;
+  private remotes = new Map<string, SamsungRemote>();
+
+  constructor(private readonly store: TokenStore) {}
 
   async listDevices(): Promise<Device[]> {
     const { stdout } = await execa("sdb", ["devices"]).catch((err) => {
@@ -137,14 +142,13 @@ export class TizenDriver implements TVDriver {
     await execa("tizen", ["uninstall", "--pkg-id", appId, "--serial", this.serial(device)]);
   }
 
-  async sendKey(_device: Device, key: RemoteKey): Promise<void> {
-    // TODO(v0.2): Samsung remote WebSocket API — wss://<tv>:8002/api/v2/channels/samsung.remote.control
-    // Requires one-time on-screen pairing; persist the granted token per device.
-    // Key codes: KEY_UP, KEY_DOWN, KEY_ENTER, KEY_RETURN, ... (map from RemoteKey).
-    throw new TVMcpError(
-      `remote_key not yet implemented for Tizen (key: ${key}).`,
-      "Track https://github.com/<owner>/tv-mcp/issues — contributions welcome. Workaround: eval_js can drive most apps by dispatching KeyboardEvent.",
-    );
+  async sendKey(device: Device, key: RemoteKey): Promise<void> {
+    let remote = this.remotes.get(device.name);
+    if (!remote) {
+      remote = new SamsungRemote(device.host, device.name, this.store);
+      this.remotes.set(device.name, remote);
+    }
+    await remote.sendKey(key);
   }
 
   async logs(device: Device, lines: number): Promise<LogEntry[]> {
