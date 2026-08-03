@@ -13,10 +13,15 @@ import type {
   TVDriver,
 } from "../types.js";
 import { TVMcpError } from "../types.js";
+import { LgRemote } from "../remote/ssap.js";
+import type { TokenStore } from "../state.js";
 
 /** LG webOS driver — wraps the `ares-*` CLIs from the webOS TV SDK. */
 export class WebOSDriver implements TVDriver {
   readonly platform = "webos" as const;
+  private remotes = new Map<string, LgRemote>();
+
+  constructor(private readonly store: TokenStore) {}
 
   async listDevices(): Promise<Device[]> {
     const { stdout } = await execa("ares-setup-device", ["--list"]).catch((err) => {
@@ -155,14 +160,13 @@ export class WebOSDriver implements TVDriver {
     await execa("ares-install", ["--device", device.serial!, "--remove", appId]);
   }
 
-  async sendKey(_device: Device, key: RemoteKey): Promise<void> {
-    // TODO(v0.2): LG SSAP WebSocket — ws://<tv>:3000 (or wss://:3001 on newer firmware).
-    // One-time on-screen pairing grants a client-key; persist per device.
-    // Then ssap://com.webos.service.networkinput/getPointerInputSocket → button events.
-    throw new TVMcpError(
-      `remote_key not yet implemented for webOS (key: ${key}).`,
-      "Track https://github.com/<owner>/tv-mcp/issues — contributions welcome. Workaround: eval_js can drive most apps by dispatching KeyboardEvent.",
-    );
+  async sendKey(device: Device, key: RemoteKey): Promise<void> {
+    let remote = this.remotes.get(device.name);
+    if (!remote) {
+      remote = new LgRemote(device.host, device.name, this.store);
+      this.remotes.set(device.name, remote);
+    }
+    await remote.sendKey(key);
   }
 
   async logs(device: Device, lines: number): Promise<LogEntry[]> {
