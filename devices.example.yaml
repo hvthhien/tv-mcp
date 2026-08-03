@@ -1,0 +1,22 @@
+# Copy to devices.yaml and edit. Point tv-mcp at it with --config or TV_MCP_CONFIG.
+
+devices:
+  - name: lab-samsung-q80
+    platform: tizen
+    host: 192.168.1.40
+    signingProfile: my-partner-profile   # tizen security-profiles list
+
+  - name: lab-lg-c3
+    platform: webos
+    host: 192.168.1.41
+    passphraseEnv: LG_C3_PASSPHRASE      # Dev Mode app passphrase, via env var
+
+projects:
+  myapp:
+    buildCmd: npm run build
+    dist: dist/
+    tizen:
+      appId: ABCDvxyz12.myapp
+      profile: my-partner-profile
+    webos:
+      appId: com.example.myapp           # must match dist/appinfo.json "id"
