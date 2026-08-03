@@ -37,7 +37,15 @@ jobs:
       - run: npm test
 
       - name: Publish to npm (OIDC trusted publishing, with provenance)
-        run: npm publish --access public
+        # Skip when this version is already on npm — lets the MCP Registry
+        # step run standalone (e.g. after a manual first publish).
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          if npm view "tv-mcp@$VERSION" version >/dev/null 2>&1; then
+            echo "tv-mcp@$VERSION already on npm — skipping"
+          else
+            npm publish --access public
+          fi
 
       - name: Install mcp-publisher
         run: |
