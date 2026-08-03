@@ -1,8 +1,15 @@
 name: Publish to npm + MCP Registry
 
-# Runs on every GitHub release. Requires the NPM_TOKEN repo secret
-# (npm automation token) — MCP Registry auth needs no secret; it uses
-# GitHub OIDC, which authorizes the io.github.skdonthi/* namespace.
+# Tokenless publishing, both registries via OIDC:
+#  - npm: Trusted Publishing (configure on npmjs.com → package → Settings →
+#    Trusted Publisher: user skdonthi, repo tv-mcp, workflow publish-mcp.yml,
+#    allowed action "npm publish"). No NPM_TOKEN secret — 2FA-bypass tokens
+#    are deprecated (account actions Aug 2026, direct publishing Jan 2027).
+#  - MCP Registry: GitHub OIDC authorizes the io.github.skdonthi/* namespace.
+#
+# npm's trusted-publisher config requires the package to already exist, so
+# the very first version must be published interactively (npm login + npm
+# publish, normal 2FA) — every release after that is fully automated here.
 on:
   release:
     types: [published]
@@ -19,18 +26,18 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: npm
+          # Trusted publishing needs npm CLI >= 11.5.1 (bundled with Node 24).
+          node-version: 24
           registry-url: https://registry.npmjs.org
+          # Never use caching in release builds.
+          package-manager-cache: false
 
       - run: npm ci
       - run: npm run build
       - run: npm test
 
-      - name: Publish to npm
+      - name: Publish to npm (OIDC trusted publishing, with provenance)
         run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Install mcp-publisher
         run: |
