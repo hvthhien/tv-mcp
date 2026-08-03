@@ -104,10 +104,21 @@ Key presses go over a secondary pointer-input socket
 Works on consumer TVs with or without Dev Mode — pairing is independent of the
 Dev Mode app used for installs.
 
+## Hospitality panels (Samsung HG series)
+Hotel-mode firmware ships with the consumer IP-remote service (ports
+8001/8002) DISABLED, so remote_key fails with EHOSTUNREACH on HG panels
+(verified on HG32F800, Tizen 9). Use the eval_js fallback below — it works
+because it rides the debug inspector, not the remote API.
+
 ## Fallback
 eval_js can dispatch synthetic KeyboardEvents, which most spatial-navigation
-frameworks handle identically to real remote input — useful when the TV is in
-a rack with no one nearby to approve a first-time pairing prompt.
+frameworks handle identically to real remote input — useful on hospitality
+panels and when the TV is in a rack with no one nearby to approve a
+first-time pairing prompt:
+
+  document.dispatchEvent(new KeyboardEvent('keydown', {keyCode: 39, which: 39, bubbles: true}))
+
+Key codes: LEFT 37, UP 38, RIGHT 39, DOWN 40, ENTER 13, BACK 10009 (Tizen) / 461 (webOS).
 `,
   },
 };
