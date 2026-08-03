@@ -1,7 +1,12 @@
 {
   "name": "tv-mcp",
   "version": "0.2.0",
+  "mcpName": "io.github.skdonthi/tv-mcp",
   "description": "MCP server for Smart TV app development — build, deploy, and debug web apps on Samsung Tizen and LG webOS TVs from any MCP client",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/skdonthi/tv-mcp.git"
+  },
   "keywords": [
     "mcp",
     "model-context-protocol",
