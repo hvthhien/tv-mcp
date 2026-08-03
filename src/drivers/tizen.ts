@@ -1,5 +1,5 @@
 import { execa } from "execa";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import type {
   Artifact,
   Device,
@@ -13,6 +13,9 @@ import type {
 import { TVMcpError } from "../types.js";
 import { SamsungRemote } from "../remote/samsung.js";
 import type { TokenStore } from "../state.js";
+
+/** Tizen app ids are `<pkgId>.<appName>`; pkgcmd operations (kill, uninstall) take the pkgId. */
+const pkgId = (appId: string) => appId.split(".")[0];
 
 /** Samsung Tizen driver — wraps the `tizen` and `sdb` CLIs from Tizen Studio. */
 export class TizenDriver implements TVDriver {
@@ -88,22 +91,31 @@ export class TizenDriver implements TVDriver {
   }
 
   async install(device: Device, artifact: Artifact): Promise<void> {
-    await execa("tizen", [
-      "install",
-      "--name",
-      artifact.path,
-      "--serial",
-      this.serial(device),
-    ]).catch((err) => {
-      const msg: string = err.stderr ?? err.message;
-      if (msg.includes("signature") || msg.includes("cert")) {
+    // sdb push + vd_appinstall instead of `tizen install`: on TV firmware
+    // (verified on Tizen 9 hospitality panels) the tizen CLI fails silently
+    // while vd_appinstall reports progress and a real failure reason.
+    const serial = this.serial(device);
+    const remote = `/home/owner/share/tmp/sdk_tools/tmp/${basename(artifact.path).replace(/\s+/g, "_")}`;
+    await execa("sdb", ["-s", serial, "push", artifact.path, remote]);
+    const { stdout } = await execa("sdb", [
+      "-s",
+      serial,
+      "shell",
+      "0",
+      "vd_appinstall",
+      artifact.appId,
+      remote,
+    ]);
+    if (!stdout.includes("install completed")) {
+      const reason = stdout.match(/install failed\[[^\]]*\],?\s*reason:\s*(.*)/)?.[1] ?? stdout.trim();
+      if (/certificat/i.test(reason)) {
         throw new TVMcpError(
-          `Install rejected by TV (signature): ${msg}`,
-          "The distributor certificate likely does not include this TV's DUID. Read tvmcp://docs/tizen-signing and re-issue the certificate with this device's DUID.",
+          `Install rejected by TV (certificate): ${reason}`,
+          "The distributor certificate does not cover this TV — use a Samsung-issued certificate profile that includes this device's DUID (sdb shell 0 getduid). Read tvmcp://docs/tizen-signing.",
         );
       }
-      throw new TVMcpError(`tizen install failed: ${msg}`);
-    });
+      throw new TVMcpError(`Install failed on TV: ${reason}`);
+    }
   }
 
   async launch(device: Device, appId: string, debug: boolean): Promise<LaunchResult> {
@@ -114,7 +126,18 @@ export class TizenDriver implements TVDriver {
     }
     // Debug launch: TV starts the web inspector on a random port, printed to stdout.
     // We sdb-forward it locally, then resolve the page target's CDP websocket URL.
-    const { stdout } = await execa("sdb", ["-s", serial, "shell", "0", "debug", appId]);
+    // Idempotency (verified on Tizen 9 hardware): `shell 0 debug` hangs if the
+    // app is already running, and a stale forward blocks re-binding — clear both.
+    await execa("sdb", ["-s", serial, "shell", "0", "kill", pkgId(appId)]).catch(() => {});
+    await execa("sdb", ["-s", serial, "forward", "--remove", "tcp:9998"]).catch(() => {});
+    const { stdout } = await execa("sdb", ["-s", serial, "shell", "0", "debug", appId], {
+      timeout: 30_000,
+    }).catch((err) => {
+      throw new TVMcpError(
+        `Debug launch did not respond: ${err.shortMessage ?? err.message}`,
+        "The app may be stuck; try stop_app then launch_app again, or reboot the TV.",
+      );
+    });
     const port = stdout.match(/port:?\s*(\d+)/i)?.[1];
     if (!port) {
       throw new TVMcpError(
@@ -135,7 +158,7 @@ export class TizenDriver implements TVDriver {
   }
 
   async stop(device: Device, appId: string): Promise<void> {
-    await execa("sdb", ["-s", this.serial(device), "shell", "0", "kill", appId]);
+    await execa("sdb", ["-s", this.serial(device), "shell", "0", "kill", pkgId(appId)]);
   }
 
   async uninstall(device: Device, appId: string): Promise<void> {
