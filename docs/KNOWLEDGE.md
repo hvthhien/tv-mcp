@@ -74,9 +74,12 @@ playing on the panel. All achievable over the existing CDP plane:
 - Black screen while audio plays: CDP screenshot + pixel variance check —
   metrics alone miss this class.
 - Platform player errors: `device_logs` (dlog / ares-log).
-- Candidate tool: `assert_playback` — one call returning
-  playing | stalled | black-screen | error with evidence (timestamped
-  screenshot = ad proof-of-play).
+- Tool: `assert_playback` (tier 2) — **hardware-validated on HG32F800
+  (Tizen 9, 2026-08-04)**: playing (25 frames decoded over 0.8s), paused,
+  and resume-to-playing all judged correctly; screenshot evidence captured.
+  Also confirms Tizen 9 webview supports canvas.captureStream and
+  getVideoPlaybackQuality. Non-DRM video renders in CDP screenshots
+  (DRM/hardware-plane content will not — metrics remain ground truth).
 
 ## Hospitality ecosystem research
 
