@@ -115,8 +115,6 @@ playing on the panel. All achievable over the existing CDP plane:
 2. Remote debugging on hotel panels unverified — test on the incoming LG TV whether inspector access exists in HTML mode.
 3. HCAP "no storage / re-pull after power cycle" = the fleet is effectively thin-client; server-side is where the app lives → our CDP/eval verification story still applies if inspector reachable.
 4. webOS 5 is the floor for fleet compatibility (Pro:Centric+ compat statement).
-
-### LG HCAP API surface — pending
 ### Samsung LYNK / HTV ecosystem (researched 2026-08-04)
 
 **LYNK map** (CONFIRMED): **LYNK Cloud** = current SaaS platform (device mgmt, HTML5/JS content framework, Open API for ordering/booking modules — spec partner-gated, analytics; 3 license tiers; native on RU750+ panels, older via Catapult STB). **LYNK REACH 4.0** = legacy on-prem server (RF coax or IP), US IPG service expired Dec 2021, migrated to LYNK Cloud. **LYNK SINC** = absorbed into REACH. **LYNK DRM** = separate thing: hospitality content encryption (peer of Pro:Idiom).
@@ -166,4 +164,36 @@ playing on the panel. All achievable over the existing CDP plane:
 
 **Simulator** (CONFIRMED): per-version Simulators (webOS TV 22–25; macOS arm64 from 25) replaced the VirtualBox emulator. Same-version Chromium + webOSTV.js + Luna subset; run app from source dir via `ares-launch -s <version>` — no ipk needed. No DRM, no real video pipeline, no Dev Mode/SSH; headless undocumented.
 
-### LG HCAP API surface — pending
+### LG HCAP API surface (researched 2026-08-04)
+
+HCAP = **Hospitality Common Application Platform** (not "Hotel Configuration
+Application Protocol"). Findings graded [C]onfirmed (LG-authored artifacts,
+incl. genuine `hcap.js` v1.24.6.5901 found in public GitHub repos) /
+[R]eported / [U]nknown.
+
+**Architecture** [C]: app (HTML5) → HCAP library → Pro:Centric middleware →
+webOS. `hcap.js` is a thin JSON-RPC client over a **local WebSocket:
+`ws://127.0.0.1:8053/hcap_command`** (wss://:8054 with `extHcapSecure=true`).
+Async notifications = DOM events on `document` (`channel_changed`,
+`media_event_received`, `debug_event_received`...). Every method takes one
+options object with onSuccess/onFailure.
+
+**API surface** [C, from source]: ~30 namespaces, 221 methods. Highlights:
+- `hcap.mode.setHcapMode(HCAP_MODE_0..4)` — first call at app boot, gates capabilities; mode semantics [U].
+- `hcap.property` — get/setProperty (string keys: `room_number`, `platform_version`, `hcap_middleware_version`...), get/set**InstallerMenuItem** with ~90 numbered items (STRT_CHANNEL:4, PROCENTRIC:98, DATA_CHANNEL:119, FACT_DEFAULT:117) — **entire hotel installer menu programmatically read/writable**.
+- `hcap.channel` — full tuning (RF/IP incl. ATSC3, UDP/RTP), channel map, program info, signal status.
+- `hcap.Media` — class-style player: play/pause/position/speed/audio-lang/subtitles. (VOD verification hook on hotel panels where video may bypass the DOM `<video>` element.)
+- `hcap.system` — **requestScreenCaptureImage/getScreenCaptureImage** (screenshot without CDP!), getCpuUsage/getMemoryUsage, get/set**BrowserDebugMode** (inspector toggle, args [U]), showToastMessage, requestCloning, get/setProcentricServer.
+- `hcap.key` — remote takeover: addKeyItem/sendKey, ~120 IR codes (POWER:409, VOL_UP:447...).
+- `hcap.application` — launch/install/removeApplications, getServiceXml, RegisterSIApplicationList (.ipk SI apps exist alongside URL-launched HCAP-h apps).
+- Also: power (reboot, WARM mode), volume, video mute/size, externalinput, network (VLAN, SoftAP, blocked ports, wifi diagnostics), rs232c, socket (UDP/TCP daemons), mpi (PMS interface), checkout (guest checkout snapshot), beacon/bluetooth/iot/webrtc (in-room calling), drm.securemedia.
+
+**Deployment** [C]: NO .ipk for the main app — plain web app + `<script src=".../hcap.js">`; declared in **XAIT** (`xait.xml`) served by the Pro:Centric IP server (`type: Hcap-h`, AUTOSTART, HcapDescriptor url → index.html). TV-side entry [R]: hold SETTINGS until banner → `1-1-0-5`+OK (or `9876` → `119`/`253`) → Mode: HTML, Media Type: IP, server domain:80 → TV downloads app + reboots. Cloning via .TLL on USB. App flash limit <40MB; 1920×1080 canvas.
+
+**Versioning** [C]: HCAP versions independent of webOS (1.19.0→1.24.6 known stream; 2018-vintage source). Read live: `getProperty('hcap_middleware_version')` + `('platform_version')`. Direction: LG merging toward **IDCAP** (unified signage+commercial API); remote FW only on IDCAP panels.
+
+**Access** [C]: portal "Restricted Access: Partner Exclusive" — LG sales engineer → NDA/DLA → portal. No public HCAP reference; no HCAP emulator evidenced. Desktop trick [C]: hcap.js detects desktop UA and fails calls cleanly ("HCAP WebSocket is not available") → UI develops in Chrome; and a **mock server at ws://127.0.0.1:8053/hcap_command** can emulate the device — a viable tv-mcp test harness.
+
+**Debugging on hotel panels**: `setBrowserDebugMode` exists [C] but args [U]; whether port 9998 inspector is open on Pro:Centric firmware [U] — test on real hotel panel. HCAP's own screen capture + CPU/mem APIs partially substitute.
+
+**Hands-on artifacts**: github.com/okhfree/fourseasons (genuine hcap.js + working app), github.com/nfillon/LG-etereo-publicidad (full server layout: xait.xml, LGService.xml, .tlx, .ipk), github.com/mantranit/hoteza (production LG driver: channel maps, key takeover). Note: hcap.js is LG-proprietary, republished unofficially; current partner SDK will be newer.
