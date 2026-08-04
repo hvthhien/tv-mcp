@@ -87,7 +87,9 @@ export class WebOSDriver implements TVDriver {
       );
     }
     const outDir = join(tmpdir(), "tv-mcp-ipk");
-    await execa("ares-package", [webBuildDir, "-o", outDir]).catch((err) => {
+    // --no-minify: minified apps are not inspectable on-device; tv-mcp builds
+    // exist to be debugged, so debuggability beats bundle size here.
+    await execa("ares-package", [webBuildDir, "-o", outDir, "--no-minify"]).catch((err) => {
       throw new TVMcpError(
         `ares-package failed: ${err.stderr ?? err.message}`,
         "The build dir must contain appinfo.json with a matching id. See tvmcp://docs/webos-packaging.",
@@ -111,7 +113,7 @@ export class WebOSDriver implements TVDriver {
         throw new TVMcpError(
           `ares-install failed: ${msg}`,
           msg.includes("connect")
-            ? "Dev Mode session likely expired (50h limit). Open the Developer Mode app on the TV and re-enable, or use renew_dev_mode."
+            ? "Dev Mode session likely expired (sessions run out if not extended). Open the Developer Mode app on the TV and re-enable, or use renew_dev_mode."
             : undefined,
         );
       },
@@ -123,9 +125,21 @@ export class WebOSDriver implements TVDriver {
       await execa("ares-launch", ["--device", device.serial!, appId]);
       return { appId };
     }
-    // ares-inspect launches the app AND starts a local proxy to its inspector.
-    // It prints "Application Debugging - http://localhost:<port>" and stays alive;
-    // we keep the child running and resolve the page target's CDP websocket URL.
+    // Preferred path: the dev-mode inspector listens on TV port 9998 over
+    // plain HTTP/WS, so after a normal launch we can resolve the CDP websocket
+    // directly — no long-lived ares-inspect child to babysit.
+    // (docs/KNOWLEDGE.md "webOS platform internals"; unvalidated on hardware
+    // until the lab LG panel arrives — ares-inspect remains the fallback.)
+    try {
+      await execa("ares-launch", ["--device", device.serial!, appId]);
+      const direct = await this.resolveDirectCdp(device, appId);
+      if (direct) return { appId, cdpUrl: direct };
+    } catch {
+      /* fall through to ares-inspect */
+    }
+    // Fallback: ares-inspect launches the app AND starts a local proxy to its
+    // inspector. It prints "Application Debugging - http://localhost:<port>"
+    // and stays alive; we keep the child running and resolve the CDP URL.
     const child = execa("ares-inspect", ["--device", device.serial!, "--app", appId]);
     const url = await new Promise<string>((resolve, reject) => {
       const timer = setTimeout(
@@ -150,6 +164,36 @@ export class WebOSDriver implements TVDriver {
       throw new TVMcpError(`No debuggable page target at ${url}.`);
     }
     return { appId, cdpUrl: page.webSocketDebuggerUrl };
+  }
+
+  /**
+   * Resolve the app's CDP websocket straight from the TV's dev-mode inspector
+   * port (9998). Tries /json/list (newer firmware) then /pagelist.json
+   * (older). Returns null when the port is closed or the app has no target.
+   */
+  private async resolveDirectCdp(device: Device, appId: string): Promise<string | null> {
+    for (let attempt = 0; attempt < 5; attempt++) {
+      try {
+        const res = await fetch(`http://${device.host}:9998/json/list`, {
+          signal: AbortSignal.timeout(2000),
+        });
+        const targets = (await res.json()) as Array<{
+          type?: string;
+          url?: string;
+          title?: string;
+          webSocketDebuggerUrl?: string;
+        }>;
+        const page =
+          targets.find(
+            (t) => t.webSocketDebuggerUrl && (t.url?.includes(appId) || t.title?.includes(appId)),
+          ) ?? targets.find((t) => t.type === "page" && t.webSocketDebuggerUrl);
+        if (page?.webSocketDebuggerUrl) return page.webSocketDebuggerUrl;
+      } catch {
+        /* port closed or app not up yet — retry */
+      }
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+    return null;
   }
 
   async stop(device: Device, appId: string): Promise<void> {
