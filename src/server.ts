@@ -286,6 +286,27 @@ export function buildServer(config: TVMcpConfig): McpServer {
     ),
 
     server.registerTool(
+      "renew_dev_mode",
+      {
+        title: "Renew Dev Mode session",
+        description:
+          "Extend a webOS TV's Dev Mode session remotely (reads the session token off the TV, calls LG's reset endpoint). Only works while the timer is above zero.",
+        inputSchema: { device: z.string().describe("webOS device name") },
+      },
+      async ({ device: name }) => {
+        const device = registry.get(name);
+        const driver = registry.driverFor(device);
+        if (!driver.renewDevMode) {
+          throw new TVMcpError(
+            `${device.name} is a ${device.platform} device — Dev Mode sessions are a webOS concept.`,
+            "Tizen dev mode does not expire; nothing to renew.",
+          );
+        }
+        return text(await driver.renewDevMode(device));
+      },
+    ),
+
+    server.registerTool(
       "remote_key",
       {
         title: "Press remote key",

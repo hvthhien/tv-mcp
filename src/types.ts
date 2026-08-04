@@ -107,6 +107,12 @@ export interface TVDriver {
 
   /** Tail platform logs (sdb dlog / ares-log). */
   logs(device: Device, lines: number): Promise<LogEntry[]>;
+
+  /**
+   * Platform-specific session keep-alive (webOS Dev Mode). Drivers without
+   * the concept leave it undefined.
+   */
+  renewDevMode?(device: Device): Promise<string>;
 }
 
 /** Structured, agent-actionable error. Message must say what to DO, not just what broke. */

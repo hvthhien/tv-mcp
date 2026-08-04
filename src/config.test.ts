@@ -39,3 +39,12 @@ describe("buildServer", () => {
     expect(() => buildServer({ devices: [], projects: {} })).not.toThrow();
   });
 });
+
+describe("devModeResetUrl", () => {
+  it("encodes the token into LG's reset endpoint", async () => {
+    const { devModeResetUrl } = await import("./drivers/webos.js");
+    expect(devModeResetUrl("abc+123=/x")).toBe(
+      "https://developer.lge.com/secure/ResetDevModeSession.dev?sessionToken=abc%2B123%3D%2Fx",
+    );
+  });
+});

@@ -16,6 +16,11 @@ import { TVMcpError } from "../types.js";
 import { LgRemote } from "../remote/ssap.js";
 import type { TokenStore } from "../state.js";
 
+/** URL for LG's Dev Mode session-reset endpoint. Exported for tests. */
+export function devModeResetUrl(sessionToken: string): string {
+  return `https://developer.lge.com/secure/ResetDevModeSession.dev?sessionToken=${encodeURIComponent(sessionToken)}`;
+}
+
 /** LG webOS driver — wraps the `ares-*` CLIs from the webOS TV SDK. */
 export class WebOSDriver implements TVDriver {
   readonly platform = "webos" as const;
@@ -211,6 +216,58 @@ export class WebOSDriver implements TVDriver {
       this.remotes.set(device.name, remote);
     }
     await remote.sendKey(key);
+  }
+
+  /**
+   * Extend the Dev Mode session without touching the TV: read the session
+   * token from the panel (/var/luna/preferences/devmode_enabled) and hit
+   * LG's ResetDevModeSession endpoint — the same mechanism the Dev Mode
+   * app's EXTEND button and community keep-alive tools use.
+   * (docs/KNOWLEDGE.md "webOS platform internals"; REPORTED-grade —
+   * unvalidated on our hardware until the lab LG panel arrives.)
+   */
+  async renewDevMode(device: Device): Promise<string> {
+    const token = await this.readDevModeToken(device);
+    const res = await fetch(devModeResetUrl(token), {
+      signal: AbortSignal.timeout(15_000),
+    }).catch((err) => {
+      throw new TVMcpError(
+        `Could not reach developer.lge.com: ${(err as Error).message}`,
+        "Session renewal needs internet access from this machine (not the TV).",
+      );
+    });
+    const body = await res.text();
+    if (!res.ok) {
+      throw new TVMcpError(
+        `ResetDevModeSession returned HTTP ${res.status}: ${body.slice(0, 200)}`,
+        "Token may be stale (Dev Mode re-enabled since last key exchange) or the session already hit zero — at 0 the session cannot be extended remotely; re-enable Dev Mode on the TV.",
+      );
+    }
+    return `Dev Mode session extended for ${device.name}. LG response: ${body.slice(0, 200)}`;
+  }
+
+  private async readDevModeToken(device: Device): Promise<string> {
+    const path = "/var/luna/preferences/devmode_enabled";
+    // Try a remote cat first; fall back to pulling the file. Both ride the
+    // dev-mode SSH session, so either works only while the session is alive.
+    const viaShell = await execa("ares-shell", ["--device", device.serial!, "-r", `cat ${path}`])
+      .then((r) => r.stdout.trim())
+      .catch(() => null);
+    let token = viaShell;
+    if (!token) {
+      const tmp = join(tmpdir(), `tv-mcp-devmode-${device.name}`);
+      token = await execa("ares-pull", ["--device", device.serial!, path, tmp])
+        .then(async () => (await import("node:fs/promises")).readFile(tmp, "utf8"))
+        .then((s) => s.trim())
+        .catch(() => null);
+    }
+    if (!token || !/^[A-Za-z0-9+/=_-]{8,}$/.test(token)) {
+      throw new TVMcpError(
+        `Could not read a Dev Mode session token from ${device.name}${token ? ` (unexpected content: ${token.slice(0, 40)}...)` : ""}.`,
+        "The TV must be on with an active Dev Mode session (renewal only works while the timer is above zero). If the session already expired, re-enable Dev Mode in the app on the TV.",
+      );
+    }
+    return token;
   }
 
   async logs(device: Device, lines: number): Promise<LogEntry[]> {
