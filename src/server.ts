@@ -6,6 +6,8 @@ import { CdpBridge } from "./cdp/bridge.js";
 import { runDoctor } from "./doctor.js";
 import type { TVMcpConfig } from "./config.js";
 import { DOCS } from "./docs.js";
+import { buildSamplerExpression, judgePlayback } from "./playback.js";
+import type { PlaybackSnapshot } from "./playback.js";
 import { DeviceRegistry } from "./registry.js";
 import { TokenStore } from "./state.js";
 import { TizenDriver } from "./drivers/tizen.js";
@@ -335,6 +337,67 @@ export function buildServer(config: TVMcpConfig): McpServer {
             .map((e) => `[${e.level}] ${e.message}`)
             .join("\n") || "(console empty)",
         ),
+    ),
+
+    server.registerTool(
+      "assert_playback",
+      {
+        title: "Verify video playback",
+        description:
+          "Assert that video (VOD, ad) is actually playing in the app: samples the video element twice and judges playing / stalled / decoding-stalled / paused / error. Optional screenshot as evidence.",
+        inputSchema: {
+          selector: z.string().default("video").describe("CSS selector for the video element"),
+          sampleMs: z.number().int().min(250).max(10_000).default(1500).describe("Delay between the two samples"),
+          screenshot: z.boolean().default(true).describe("Attach a screenshot as evidence (note: DRM video planes render black in screenshots — the metrics are the ground truth)"),
+        },
+      },
+      async ({ selector, sampleMs, screenshot }) => {
+        const raw = await cdp.evaluate(buildSamplerExpression(selector, sampleMs));
+        if (raw.startsWith("EXCEPTION:")) {
+          throw new TVMcpError(`Playback sampling failed in-app: ${raw}`);
+        }
+        const snapshot = JSON.parse(raw) as PlaybackSnapshot;
+        const j = judgePlayback(snapshot, sampleMs);
+        const evidence = {
+          verdict: j.verdict,
+          reason: j.reason,
+          timeAdvanced: j.timeAdvanced,
+          framesAdvanced: j.framesAdvanced,
+          droppedRatio: j.droppedRatio,
+          videoElements: snapshot.count,
+          sample: snapshot.b
+            ? {
+                currentTime: snapshot.b.t,
+                readyState: snapshot.b.readyState,
+                networkState: snapshot.b.networkState,
+                resolution: `${snapshot.b.w}x${snapshot.b.h}`,
+                muted: snapshot.b.muted,
+                src: snapshot.b.src,
+              }
+            : undefined,
+          sampledAt: new Date().toISOString(),
+        };
+        const content: Array<
+          { type: "text"; text: string } | { type: "image"; data: string; mimeType: string }
+        > = [
+          {
+            type: "text",
+            text: `VERDICT: ${j.verdict.toUpperCase()}\n${j.reason}\n\n${JSON.stringify(evidence, null, 2)}`,
+          },
+        ];
+        if (screenshot && j.verdict !== "no-video") {
+          try {
+            content.push({ type: "image", data: await cdp.screenshot(), mimeType: "image/png" });
+            content.push({
+              type: "text",
+              text: "Screenshot note: DRM/hardware-plane video renders BLACK in CDP screenshots even while playing — judge video by the metrics above; judge the UI layer by the image.",
+            });
+          } catch {
+            /* screenshot is evidence, not the verdict — ignore capture failures */
+          }
+        }
+        return { content };
+      },
     ),
 
     server.registerTool(
