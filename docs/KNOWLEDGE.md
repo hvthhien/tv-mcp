@@ -157,7 +157,7 @@ playing on the panel. All achievable over the existing CDP plane:
 **Dev Mode** (CONFIRMED via webosbrew + LG forum):
 - Sessions now **1000 hours** (not 50h — older info). EXTEND resets timer; at 0 you cannot extend (apps uninstalled, logged out). Auto-disables after 10 reboots without network.
 - **One TV per developer account** — new login logs out the old TV. Matters for lab fleets: one LG dev account per panel.
-- Headless renewal (REPORTED): `ares-extend-dev` command exists in LG's TV CLI; alternative endpoint `GET https://developer.lge.com/secure/ResetDevModeSession.dev?sessionToken=<token>` — token readable on TV (`/var/luna/preferences/devmode_enabled`). Prior art: webosbrew Dev Manager, Neur0toxine/lg-webos-devmode-timer-extender. → our auto-renew roadmap item is implementable.
+- Headless renewal (REPORTED): `ares-extend-dev` command exists in LG's TV CLI; alternative endpoint `GET https://developer.lge.com/secure/ResetDevModeSession.dev?sessionToken=<token>` — token readable on TV (`/var/luna/preferences/devmode_enabled`). Prior art: webosbrew Dev Manager, Neur0toxine/lg-webos-devmode-timer-extender. → implemented as the `renew_dev_mode` tool (tier 1): reads the token via ares-shell/ares-pull, calls the reset endpoint; only works while timer > 0. Note: modern @webos-tools/cli does NOT ship ares-extend-dev — endpoint is the only headless path. Unvalidated on hardware.
 
 **Transport map**: SSH :9922 (user `prisoner`, key via `ares-novacom --getkey` + Dev Mode passphrase, lands in `~/.ssh/<device>_webos`) for install/launch/files; CDP :9998 for debug/eval/screenshot; SSAP wss://:3001 (2020+; :3000 blocked on webOS 5+ — our fallback order should PREFER 3001) for pairing-based control.
 
