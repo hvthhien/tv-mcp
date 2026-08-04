@@ -3,6 +3,7 @@ import type { RegisteredTool } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { execa } from "execa";
 import { z } from "zod";
 import { CdpBridge } from "./cdp/bridge.js";
+import { runDoctor } from "./doctor.js";
 import type { TVMcpConfig } from "./config.js";
 import { DOCS } from "./docs.js";
 import { DeviceRegistry } from "./registry.js";
@@ -22,7 +23,7 @@ const REMOTE_KEYS = [
 /**
  * Builds the MCP server with three progressively disclosed tool tiers:
  *
- *   Tier 0 (always):        list_devices, connect_device, docs
+ *   Tier 0 (always):        list_devices, connect_device, docs, doctor
  *   Tier 1 (device online): build_app, install_app, launch_app, stop_app,
  *                           uninstall_app, device_logs, remote_key
  *   Tier 2 (debug session): screenshot, eval_js, console_logs
@@ -31,7 +32,7 @@ const REMOTE_KEYS = [
  * client refreshes. A fresh session costs the model 3 tool schemas, not 13.
  */
 export function buildServer(config: TVMcpConfig): McpServer {
-  const server = new McpServer({ name: "tv-mcp", version: "0.2.3" });
+  const server = new McpServer({ name: "tv-mcp", version: "0.3.0" });
 
   const store = new TokenStore();
   const registry = new DeviceRegistry(
@@ -83,6 +84,17 @@ export function buildServer(config: TVMcpConfig): McpServer {
         );
       return text(rows.join("\n") || "No devices configured or discovered. Use connect_device.");
     },
+  );
+
+  server.registerTool(
+    "doctor",
+    {
+      title: "Environment preflight",
+      description:
+        "Check vendor toolchains, Tizen signing profiles, and TV reachability in one pass. Run first when anything fails.",
+      inputSchema: {},
+    },
+    async () => text(await runDoctor(config, store)),
   );
 
   server.registerTool(

@@ -14,6 +14,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Planned: Tizen emulator / webOS simulator targets
 - Planned: streamable-HTTP transport with device locking for shared TV labs
 
+## [0.3.0] - 2026-08-04
+
+### Added
+
+- `doctor` tool (tier 0): environment preflight in one pass — vendor CLI
+  presence/versions, Tizen certificate profiles classified as Samsung-issued
+  vs the generic SDK distributor cert real TVs reject, configured-TV
+  reachability probes, webOS passphrase env checks, and pairing-token status.
+  Every failing check carries a remedy, same philosophy as `TVMcpError`
+  but before the failure instead of after it.
+
 ## [0.2.3] - 2026-08-03
 
 ### Added
@@ -103,7 +114,8 @@ Maintenance release validating the fully automated publish pipeline.
   dev mode, packaging, remote pairing).
 - Structured errors (`TVMcpError`) with mandatory agent-actionable remedies.
 
-[Unreleased]: https://github.com/skdonthi/tv-mcp/compare/v0.2.3...HEAD
+[Unreleased]: https://github.com/skdonthi/tv-mcp/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/skdonthi/tv-mcp/compare/v0.2.3...v0.3.0
 [0.2.3]: https://github.com/skdonthi/tv-mcp/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/skdonthi/tv-mcp/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/skdonthi/tv-mcp/compare/v0.2.0...v0.2.1

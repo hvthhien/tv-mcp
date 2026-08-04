@@ -6,12 +6,12 @@
     "url": "https://github.com/skdonthi/tv-mcp",
     "source": "github"
   },
-  "version": "0.2.3",
+  "version": "0.3.0",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "tv-mcp",
-      "version": "0.2.3",
+      "version": "0.3.0",
       "transport": {
         "type": "stdio"
       },

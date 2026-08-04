@@ -32,7 +32,7 @@ A fresh session exposes only **3 tools** (`list_devices`, `connect_device`, `doc
 
 | Tier | Unlocked by | Tools |
 |---|---|---|
-| 0 | always | `list_devices`, `connect_device`, `docs` |
+| 0 | always | `list_devices`, `connect_device`, `docs`, `doctor` |
 | 1 | device connected | `build_app`, `install_app`, `launch_app`, `stop_app`, `uninstall_app`, `device_logs`, `remote_key` |
 | 2 | debug launch | `screenshot`, `console_logs`, `eval_js` |
 
@@ -48,6 +48,8 @@ tv-mcp orchestrates the vendor toolchains — it does not replace them. You need
 | **Network** | TV and this machine on the same subnet; port 26101 open only while dev mode is armed | same subnet; SSH on 9922 via the Dev Mode app; sessions expire after ~50h |
 
 Common trap (learned on real hardware): a multi-homed machine has several IPs — the Host PC IP on the TV must be the one on the **TV's** subnet, or the TV silently drops every connection. `docs` topic `device-setup` has the full checklist; the server's errors point there when connect/install fails.
+
+Not sure your setup is right? Ask the agent to run **`doctor`** — one pass over toolchains, signing profiles (it distinguishes Samsung-issued certs from the generic SDK cert that real TVs reject), and TV reachability, with a remedy for every failing item.
 
 ## Quick start
 
