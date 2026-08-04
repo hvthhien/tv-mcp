@@ -118,6 +118,44 @@ playing on the panel. All achievable over the existing CDP plane:
 2. Remote debugging on hotel panels unverified — test on the incoming LG TV whether inspector access exists in HTML mode.
 3. HCAP "no storage / re-pull after power cycle" = the fleet is effectively thin-client; server-side is where the app lives → our CDP/eval verification story still applies if inspector reachable.
 4. webOS 5 is the floor for fleet compatibility (Pro:Centric+ compat statement).
+
+### LG RMS REST API (port 10000) — observed on 50UR762H3ZC, 2026-08-04
+
+**A Dev-Mode-free control path on hotel LG panels.** Observed directly from
+the TV's own interactive API doc (`http://<tv-ip>:10000/doc/index.html`) —
+primary source, grade [OBSERVED].
+
+- RMS = Remote Management System; the external REST face of HCAP's `hcap.rms`.
+- **No Dev Mode / no ares / no LG dev account** — plain HTTP on port 10000.
+- Older models may not expose it. Requires the TV to have RMS enabled +
+  the requestor authorized (IP allowlist).
+- **Auth handshake**: `GET /api/authorize?deviceIpAddress=<TV>&requestorIpAddress=<this machine>`
+  → grants the requestor IP access to the device's internal HCAP API.
+- Doc UI at `/doc/index.html` (likely Swagger/OpenAPI — confirm on reachable TV).
+- Remaining surface to capture from the doc: power, channel, volume, input,
+  app control, device info, and CRITICALLY media/playback status (a
+  DOM-free "what's playing / is it playing" path for VOD/ad verification).
+- Not reachable in lab yet (TV off-subnet / powered down); scaffolded a
+  client in `src/rms/client.ts` against the observed shape, untested.
+
+**Research corroboration (2026-08-04)**: RMS spec is gated behind LG's
+partner-only Pro:Centric portal — NOT publicly documented anywhere, no
+open-source client/Postman exists. Public nmap data confirms port 10000
+open on LG commercial webOS panels (alongside 3000/3001/9998). `hcap.rms` /
+`requestRms` is the in-app JS twin of this external REST path — same
+subsystem, two front doors (JS for on-TV apps, REST for off-TV clients).
+`/doc/index.html` may be Javadoc rather than Swagger (SDK-structure match) —
+confirm on hardware. IDCAP (sibling API) is CONFIRMED to expose screenshot
+capture + telemetry (panel temp, backlight hours, firmware, USB), so RMS
+likely has device-info/screenshot; media/playback reporting UNKNOWN — the
+#1 thing to test. This is a genuinely undocumented surface; what the user
+reads off the panel's own doc is the authoritative source.
+
+**Priority to capture from the live doc**: (1) media/playback/foreground-app
+status — the DOM-free VOD/ad verification path; (2) does /api/authorize
+return a token/session or is it pure IP-allowlist; (3) power/input/volume;
+(4) device info; (5) is /doc Swagger (exportable) or static Javadoc.
+
 ### Samsung LYNK / HTV ecosystem (researched 2026-08-04)
 
 **LYNK map** (CONFIRMED): **LYNK Cloud** = current SaaS platform (device mgmt, HTML5/JS content framework, Open API for ordering/booking modules — spec partner-gated, analytics; 3 license tiers; native on RU750+ panels, older via Catapult STB). **LYNK REACH 4.0** = legacy on-prem server (RF coax or IP), US IPG service expired Dec 2021, migrated to LYNK Cloud. **LYNK SINC** = absorbed into REACH. **LYNK DRM** = separate thing: hospitality content encryption (peer of Pro:Idiom).
