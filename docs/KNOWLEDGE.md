@@ -48,6 +48,22 @@ something new.
 - Everything else in the dev loop (vd_appinstall, debug, CDP) works the same
   as consumer on Tizen 9 hotel firmware.
 
+## Lab LG panels seen 2026-08-04 (reachability only)
+- **50UR762H3ZC** — Pro:Centric, IP off-subnet / unreachable so far. RMS port 10000 doc observed (see RMS section).
+- **24LV761H, webOS 3.6** @ 192.168.32.144 — 2017 Pro:Centric hotel panel.
+  ARP resolves (LG MAC 38:8c:50:...), so L2-reachable, but ALL ports closed
+  (10000/9922/9998/3000/3001) → neither RMS nor Dev Mode enabled yet.
+  **⚠ Chromium 38 (webOS 3.x)**: legacy CDP protocol dialect. Our CdpBridge
+  (chrome-remote-interface) targets modern CDP — screenshot/console/eval may
+  need a legacy fallback (older firmware uses `/pagelist.json` +
+  `inspectorUrl` instead of `/json/list` + `webSocketDebuggerUrl`; LG advises
+  Chrome v38 devtools frontend for webOS ≤4.x). Expect the debug plane to
+  need work on this panel even once Dev Mode is on. Deploy path (ares
+  install/launch) should still work.
+  Also: hotel panels often lack the LG Content Store → the Developer Mode
+  app may not be installable here at all; RMS (port 10000) is the more
+  likely door on Pro:Centric.
+
 ## LG webOS — NOT yet hardware-validated
 
 Driver implemented against ares-* CLI docs; expect a firmware-drift round
