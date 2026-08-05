@@ -63,6 +63,18 @@ export class RmsClient {
       body = text;
     }
     if (!res.ok) {
+      // Observed on 50UR762H (webOS 5): a global allowlist middleware returns
+      // 401 {"error_message":"You are not authorized to use RMS"} for EVERY
+      // path — including /api/authorize itself — until the requestor IP is
+      // trusted. On a deployed, fleet-managed panel you cannot self-authorize
+      // from an unknown machine; a trusted controller (the Pro:Centric / XMM
+      // server, or the TV's installer menu) must add this IP first.
+      if (res.status === 401 && text.includes("not authorized")) {
+        throw new TVMcpError(
+          `RMS refused this machine: ${text.slice(0, 120)}`,
+          `Authorize this host's IP on the panel first — via the installer menu's RMS/external-control allowlist, or by having the trusted fleet controller (Pro:Centric/XMM) grant requestorIpAddress. Then retry.`,
+        );
+      }
       throw new TVMcpError(`RMS ${path} returned HTTP ${res.status}: ${text.slice(0, 200)}`);
     }
     return body;

@@ -154,6 +154,20 @@ primary source, grade [OBSERVED].
 - Not reachable in lab yet (TV off-subnet / powered down); scaffolded a
   client in `src/rms/client.ts` against the observed shape, untested.
 
+**LIVE PROBE — 50UR762H3ZC, webOS 5, 192.168.32.153 (2026-08-05) [OBSERVED]**:
+- Ping OK (~7ms), ports **10000 OPEN, 3000 OPEN, 3001 OPEN**, 9922/9998 closed
+  (RMS + SSAP up; Dev Mode off — as expected for a hotel panel).
+- RMS server is **Node/Express** (`X-Powered-By: Express`). REST/JSON.
+- **Global IP-allowlist auth**: EVERY path (incl. `/api/authorize`, and OPTIONS)
+  returns `HTTP 401 {"error_message":"You are not authorized to use RMS"}`
+  (identical canned response, same ETag) until the requestor IP is trusted.
+- So you **cannot self-authorize from an unknown machine** on a deployed
+  fleet panel — the allowlist is set on the TV (installer menu) or pushed by
+  the trusted controller (Pro:Centric server / XMM, which already manages
+  this fleet from 10.100.0.12). Our lab Mac (192.168.32.124) is not on it.
+- Next step to unblock RMS testing: add 192.168.32.124 to the panel's RMS
+  allowlist (TV installer menu) OR authorize it via XMM, then re-run RmsClient.
+
 **Research corroboration (2026-08-04)**: RMS spec is gated behind LG's
 partner-only Pro:Centric portal — NOT publicly documented anywhere, no
 open-source client/Postman exists. Public nmap data confirms port 10000
