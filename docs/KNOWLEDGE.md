@@ -187,6 +187,29 @@ primary source, grade [OBSERVED].
   RMS access belongs to **XMM** → that's the future **xmm-mcp**'s job, not
   tv-mcp's. Keep RmsClient for the standalone case; do fleet RMS via xmm-mcp.
 
+### Fleet controller (XMM) — boundary, not part of tv-mcp
+
+Deployed hotel/cruise LG + Samsung panels are managed by a **fleet controller**
+(in a Pro:Centric-style architecture) that is the only client the TVs trust.
+That controller — not the developer tools — owns fleet `.ipk`/config rollout,
+RMS/HTV device control, scheduling, and channel tracking. tv-mcp deliberately
+stops at the developer inner loop (Dev Mode / ares / sdb / CDP on a panel you
+control). Fleet operations are a **separate MCP** (see the three-project split:
+tv-mcp = dev-time, the TV webapp = product, fleet-controller-mcp = ops).
+Internal fleet-API details are kept OUT of this public repo (gitignored).
+
+### webOS deployment paths (how a .ipk reaches a hotel LG panel)
+
+1. **Fleet controller / Pro:Centric server** — the production path. .ipk
+   registered on the controller, pushed over IP/RF; TV installs via HCAP
+   `application.installApplications` / `RegisterSIApplicationList`. (Most
+   Pro:Centric apps aren't .ipk at all — they're HCAP-h HTML apps served from
+   a URL via XAIT.)
+2. **USB clone** (.TLL/.tlx) — offline room provisioning via installer menu.
+3. **Dev Mode + `ares-install`** — the developer path tv-mcp automates; needs
+   the Developer Mode app (Content Store + LG account), often unavailable on
+   locked hotel firmware — which is why lab hotel panels showed port 9922 closed.
+
 **Research corroboration (2026-08-04)**: RMS spec is gated behind LG's
 partner-only Pro:Centric portal — NOT publicly documented anywhere, no
 open-source client/Postman exists. Public nmap data confirms port 10000

@@ -4,3 +4,7 @@ devices.yaml
 *.wgt
 *.ipk
 .DS_Store
+
+# Xcontrol-internal API specs and fleet notes (never commit — public repo)
+docs/api-docs-xmm*.json
+docs/XMM-FLEET.md
