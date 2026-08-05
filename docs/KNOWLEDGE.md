@@ -168,6 +168,25 @@ primary source, grade [OBSERVED].
 - Next step to unblock RMS testing: add 192.168.32.124 to the panel's RMS
   allowlist (TV installer menu) OR authorize it via XMM, then re-run RmsClient.
 
+**ARCHITECTURE CONFIRMED (2026-08-05) — how RMS trust actually works:**
+- Calling XMM's `GET http://<xmm>/api/authorize?deviceIpAddress=<TV>&requestorIpAddress=<me>`
+  returns `{success:true}` — BUT this authorizes the requestor to use **XMM's
+  RMS proxy**, NOT to talk to the TV's :10000 directly. Direct calls to the
+  TV still 401.
+- **The TV's :10000 RMS trusts ONLY the Pro:Centric/XMM controller.** You reach
+  RMS *through* XMM: `GET http://<xmm>/api/deviceInfo?deviceIpAddress=<TV>` etc.
+- Verified working via XMM proxy on 50UR762H (redacted): `deviceInfo`
+  (room_number, model_name, platform_version 04.77.50, current_input, serial,
+  micom/boot versions — these are the `hcap.property` keys), `getPowerMode`
+  ({instant_power}), `networkInfo` (wired/wifi/soft-AP detail). `getCurrentChannel`
+  returns `{success:false,"Device is empty"}` when the location key isn't in
+  XMM's device registry.
+- **Consequence for tv-mcp**: `RmsClient` talking DIRECTLY to a TV's :10000
+  only works when tv-mcp's host IS an authorized controller (a standalone lab
+  panel where you set the allowlist yourself). On a real fleet-managed panel,
+  RMS access belongs to **XMM** → that's the future **xmm-mcp**'s job, not
+  tv-mcp's. Keep RmsClient for the standalone case; do fleet RMS via xmm-mcp.
+
 **Research corroboration (2026-08-04)**: RMS spec is gated behind LG's
 partner-only Pro:Centric portal — NOT publicly documented anywhere, no
 open-source client/Postman exists. Public nmap data confirms port 10000
