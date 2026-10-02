@@ -1,4 +1,5 @@
 import { execa } from "execa";
+import { readdir, stat } from "node:fs/promises";
 import { basename, join } from "node:path";
 import type {
   Artifact,
@@ -80,14 +81,19 @@ export class TizenDriver implements TVDriver {
       );
     });
     // tizen CLI writes <name>.wgt next to the build dir; locate the newest .wgt.
-    const { stdout } = await execa("sh", [
-      "-c",
-      `ls -t ${join(webBuildDir, "*.wgt")} 2>/dev/null | head -1`,
-    ]);
-    if (!stdout.trim()) {
+    const wgts = await readdir(webBuildDir).then(
+      (names) => names.filter((n) => n.endsWith(".wgt")),
+      () => [] as string[],
+    );
+    const newest = (
+      await Promise.all(
+        wgts.map(async (n) => ({ n, t: (await stat(join(webBuildDir, n))).mtimeMs })),
+      )
+    ).sort((a, b) => b.t - a.t)[0];
+    if (!newest) {
       throw new TVMcpError(`Packaging reported success but no .wgt found in ${webBuildDir}.`);
     }
-    return { platform: this.platform, path: stdout.trim(), appId: project.tizen.appId };
+    return { platform: this.platform, path: join(webBuildDir, newest.n), appId: project.tizen.appId };
   }
 
   async install(device: Device, artifact: Artifact): Promise<void> {

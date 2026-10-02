@@ -56,7 +56,7 @@ Not sure your setup is right? Ask the agent to run **`doctor`** — one pass ove
 ```bash
 npm install
 npm run build
-cp devices.example.yaml devices.yaml   # edit for your TVs and project
+mkdir -p ~/.tv-mcp && cp devices.example.yaml ~/.tv-mcp/devices.yaml   # edit for your TVs and project
 ```
 
 Claude Code:

@@ -59,14 +59,14 @@ export class WebOSDriver implements TVDriver {
       "--add",
       config.name,
       "--info",
-      `{"host":"${config.host}","port":"9922","username":"prisoner"}`,
+      JSON.stringify({ host: config.host, port: "9922", username: "prisoner" }),
     ]).catch(async () => {
       // Already registered → modify instead.
       await execa("ares-setup-device", [
         "--modify",
         config.name,
         "--info",
-        `{"host":"${config.host}"}`,
+        JSON.stringify({ host: config.host }),
       ]);
     });
     // getkey pulls the SSH key from the Dev Mode app; needs the passphrase shown on-TV.

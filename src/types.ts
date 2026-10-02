@@ -48,7 +48,7 @@ export interface Device extends DeviceConfig {
 export interface ProjectConfig {
   name: string;
   /** Command that produces the web build, e.g. "npm run build". */
-  buildCmd: string;
+  buildCmd: string | string[];
   /** Directory the web build emits, packaged as-is into .wgt/.ipk. */
   dist: string;
   tizen?: { appId: string; profile: string };

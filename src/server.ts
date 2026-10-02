@@ -14,6 +14,7 @@ import { TizenDriver } from "./drivers/tizen.js";
 import { WebOSDriver } from "./drivers/webos.js";
 import type { Artifact, Platform, RemoteKey } from "./types.js";
 import { TVMcpError } from "./types.js";
+import { assertAppId, assertArtifactPath, assertDeviceName, assertHost, parseCommand } from "./validate.js";
 
 const REMOTE_KEYS = [
   "UP", "DOWN", "LEFT", "RIGHT", "OK", "BACK", "HOME",
@@ -115,7 +116,7 @@ export function buildServer(config: TVMcpConfig): McpServer {
       const cfg = name
         ? registry.get(name)
         : host && platform
-          ? { name: `${platform}-${host}`, platform, host }
+          ? { name: `${platform}-${assertHost(host)}`.replace(/[^A-Za-z0-9._-]/g, "-"), platform, host }
           : null;
       if (!cfg) {
         throw new TVMcpError("Provide either name, or host + platform.");
@@ -188,7 +189,8 @@ export function buildServer(config: TVMcpConfig): McpServer {
           );
         }
         if (!skipWebBuild) {
-          await execa(proj.buildCmd, { shell: true }).catch((err) => {
+          const [exe, ...args] = parseCommand(proj.buildCmd);
+          await execa(exe, args).catch((err) => {
             throw new TVMcpError(`Web build failed:\n${err.stderr ?? err.message}`);
           });
         }
@@ -212,8 +214,18 @@ export function buildServer(config: TVMcpConfig): McpServer {
       },
       async ({ device: name, artifactPath, appId }) => {
         const device = registry.get(name);
+        if (artifactPath && !appId) {
+          throw new TVMcpError("appId is required with artifactPath.");
+        }
         const artifact: Artifact | undefined = artifactPath
-          ? { platform: device.platform, path: artifactPath, appId: appId ?? "" }
+          ? {
+              platform: device.platform,
+              path: assertArtifactPath(
+                artifactPath,
+                Object.values(config.projects).map((p) => p.dist),
+              ),
+              appId: assertAppId(appId!),
+            }
           : artifacts.get(device.platform);
         if (!artifact) {
           throw new TVMcpError(`No artifact for ${device.platform}.`, "Run build_app first.");
@@ -237,7 +249,7 @@ export function buildServer(config: TVMcpConfig): McpServer {
       },
       async ({ device: name, appId, debug }) => {
         const device = registry.get(name);
-        const result = await registry.driverFor(device).launch(device, appId, debug);
+        const result = await registry.driverFor(device).launch(device, assertAppId(appId), debug);
         if (result.cdpUrl) {
           await cdp.attach(result.cdpUrl);
           enableTier(tier2); // progressive disclosure: debug tools appear now
@@ -255,7 +267,7 @@ export function buildServer(config: TVMcpConfig): McpServer {
       { title: "Stop app", description: "Stop a running app.", inputSchema: { device: z.string(), appId: z.string() } },
       async ({ device: name, appId }) => {
         const device = registry.get(name);
-        await registry.driverFor(device).stop(device, appId);
+        await registry.driverFor(device).stop(device, assertAppId(appId));
         await cdp.detach();
         return text(`Stopped ${appId} on ${device.name}.`);
       },
@@ -266,7 +278,7 @@ export function buildServer(config: TVMcpConfig): McpServer {
       { title: "Uninstall app", description: "Remove an app from a TV.", inputSchema: { device: z.string(), appId: z.string() } },
       async ({ device: name, appId }) => {
         const device = registry.get(name);
-        await registry.driverFor(device).uninstall(device, appId);
+        await registry.driverFor(device).uninstall(device, assertAppId(appId));
         return text(`Uninstalled ${appId} from ${device.name}.`);
       },
     ),
